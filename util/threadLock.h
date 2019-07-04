@@ -26,14 +26,14 @@ public:
             throw Exception("[ThreadMutex::~ThreadMutex] pthread_mutex_destroy error", res);
     }
 
-    void lock()
+    void lock() const
     {
         int res = pthread_mutex_lock(&_mutex);
         if (res != 0)
             throw Exception("[ThreadMutex::lock] pthread_mutex_lock error", res);
     }
 
-    bool tryLock()
+    bool tryLock() const
     {
         int res = pthread_mutex_trylock(&_mutex);
         if (res != 0 && res != EBUSY)
@@ -42,7 +42,7 @@ public:
         return res == 0;
     }
 
-    void unlock()
+    void unlock() const
     {
         int res = pthread_mutex_unlock(&_mutex);
         if (res != 0)
@@ -55,7 +55,7 @@ private:
     ThreadMutex& operator=(const ThreadMutex&);
 
 private:
-    pthread_mutex_t     _mutex;
+    mutable pthread_mutex_t     _mutex;
 };
 
 
@@ -92,7 +92,7 @@ public:
     }
 
     template<typename Mutex>
-    void wait(Mutex &mutex)
+    void wait(Mutex &mutex) const
     {
         int res = pthread_cond_wait(&_cond, &mutex._mutex);
         if (res != 0)
@@ -100,7 +100,7 @@ public:
     }
 
     template<typename Mutex>
-    bool timedWait(Mutex &mutex, int millsecond)
+    bool timedWait(Mutex &mutex, int millsecond) const
     {
         timespec ts;
         struct timeval tv;
@@ -123,7 +123,7 @@ private:
     ThreadCond& operator=(const ThreadCond&);
 
 private:
-    pthread_cond_t      _cond;
+    mutable pthread_cond_t      _cond;
 };
 
 
@@ -143,7 +143,7 @@ public:
             _mutex.unlock();
     }
 
-    void lock()
+    void lock() const
     {
         if (_bLocked)
             throw Exception("thread has locked!");
@@ -151,7 +151,7 @@ public:
         _bLocked = true;
     }
 
-    void unlock()
+    void unlock() const
     {
         if (!_bLocked)
             throw Exception("thread hasn't been locked!");
@@ -165,8 +165,8 @@ public:
     }
 
 protected:
-    T&          _mutex;
-    bool        _bLocked;
+    const T&            _mutex;
+    mutable bool        _bLocked;
 };
 
 
@@ -186,13 +186,13 @@ public:
     {
     }
 
-    void lock()
+    void lock() const
     {
         _mutex.lock();
         _notify = 0;
     }
 
-    void unlock()
+    void unlock() const
     {
         notifyImpl();
         _mutex.unlock();
@@ -209,7 +209,7 @@ public:
         _notify = -1;
     }
 
-    void wait()
+    void wait() const
     {
         notifyImpl();
 
@@ -225,7 +225,7 @@ public:
         _notify = 0;
     }
 
-    bool timedWait(int millsecond)
+    bool timedWait(int millsecond) const
     {
         notifyImpl();
         bool rc;
@@ -245,7 +245,7 @@ public:
 
 private:
 
-    void notifyImpl()
+    void notifyImpl() const
     {
         if (_notify !=0)
         {
@@ -269,9 +269,9 @@ private:
     Monitor& operator=(const Monitor&);
 
 private:
-    int         _notify;     // 通知的次数
-    MUTEX       _mutex;
-    COND        _cond;
+    mutable int         _notify;     // 通知的次数
+    mutable MUTEX       _mutex;
+    mutable COND        _cond;
 };
 
 
